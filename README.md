@@ -1,7 +1,5 @@
-<<<<<<< HEAD
 # gmail_tab_recover
 A quick attempt at building a tool with an AI-aided process.
-=======
 # Gmail Tab Recover — Extension
 
 This repo contains a Chrome extension to scan your browser history for items not currently open and offer to reopen them.
@@ -53,4 +51,3 @@ Next steps
 - Polish UI and error handling.
 
 If you'd like, I can implement the settings UI next. Please confirm.
->>>>>>> ddbe756 (Initial Commit -more elaborate code than original)
