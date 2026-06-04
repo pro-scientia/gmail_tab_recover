@@ -1,0 +1,16 @@
+{
+  "manifest_version": 3,
+  "name": "History Reopener",
+  "version": "1.0",
+  "description": "Opens history items that aren't already open.",
+  "permissions": [
+    "history",
+    "tabs",
+    "storage",
+    "sessions",
+    "downloads"
+  ],
+  "action": {
+    "default_popup": "get_tabs.html"
+  }
+}

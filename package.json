@@ -1,0 +1,12 @@
+{
+  "name": "gmail_tab_recover",
+  "version": "0.1.0",
+  "description": "Tab recovery extension - tests and outline",
+  "main": "src/filters.js",
+  "scripts": {
+    "test": "jest --colors"
+  },
+  "devDependencies": {
+    "jest": "^29.0.0"
+  }
+}
