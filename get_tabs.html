@@ -2,26 +2,44 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <style>
-    body { width: 200px; font-family: sans-serif; padding: 10px; }
-    button { width: 100%; padding: 8px; margin-bottom: 8px; cursor: pointer; }
-    #status { font-size: 0.85em; color: #555; }
-  </style>
+  <link rel="stylesheet" href="get_tabs.css">
 </head>
 <body>
-  <div>
-    <button id="scan-btn">Scan History</button>
-    <button id="open-selected-btn">Open Selected</button>
-    <button id="export-btn">Export Snapshot</button>
+  <div class="popup-header">
+    <div class="button-group">
+      <button id="scan-btn" class="primary">Scan History</button>
+      <button id="open-selected-btn">Open Selected</button>
+      <button id="open-window-btn" class="secondary">Open in Window</button>
+      <button id="export-btn" class="secondary">Export Snapshot</button>
+    </div>
   </div>
 
-  <h4>Open Tabs</h4>
-  <div id="open-tabs" style="max-height:120px;overflow:auto;border:1px solid #eee;padding:6px;margin-bottom:8px;"></div>
+  <input type="text" id="search-box" class="search-box" placeholder="Search by URL or domain...">
+
+  <div class="controls">
+    <label>
+      <input type="checkbox" id="group-toggle" checked>
+      Group by domain
+    </label>
+  </div>
+
+  <div class="tabs-container">
+    <div class="tabs-section">
+      <h4>Open Tabs</h4>
+      <div id="open-tabs" class="tabs-list"></div>
+    </div>
+
+    <div class="tabs-section">
+      <h4>Last Snapshots</h4>
+      <div id="snapshots" class="tabs-list"></div>
+    </div>
+  </div>
 
   <h4>Suggested to Open</h4>
-  <div id="suggested-list" style="max-height:200px;overflow:auto;border:1px solid #eee;padding:6px;margin-bottom:8px;"></div>
+  <div id="suggested-list" class="suggested-list"></div>
 
   <div id="status"></div>
+  
   <script src="get_tabs.js"></script>
 </body>
 </html>

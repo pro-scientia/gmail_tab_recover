@@ -1,18 +1,83 @@
 const statusDiv = document.getElementById('status');
 const openTabsDiv = document.getElementById('open-tabs');
 const suggestedDiv = document.getElementById('suggested-list');
+const snapshotsDiv = document.getElementById('snapshots');
+const searchBox = document.getElementById('search-box');
+const groupToggle = document.getElementById('group-toggle');
 
 const DEFAULT_SCAN_LIMIT = 50;
-const DEFAULT_SUGGEST_LIMIT = 15;
+const DEFAULT_SUGGEST_LIMIT = 30;
+
+let currentSuggestions = [];
+let currentOpenTabs = [];
+let selectedCheckboxes = new Set();
+let groupByDomain = true;
+
+// Domain color palette
+const DOMAIN_COLORS = {
+  github: '#333',
+  stackoverflow: '#f48024',
+  google: '#4285f4',
+  gmail: '#c5221f',
+  notion: '#000',
+  youtube: '#ff0000',
+  twitter: '#1da1f2',
+  reddit: '#ff4500',
+  medium: '#000',
+  dev: '#0a0e27',
+  default: '#8b8b8b'
+};
+
+function getDomainColor(url) {
+  try {
+    const hostname = new URL(url).hostname.toLowerCase();
+    for (const [domain, color] of Object.entries(DOMAIN_COLORS)) {
+      if (domain !== 'default' && hostname.includes(domain)) return color;
+    }
+  } catch (e) {}
+  return DOMAIN_COLORS.default;
+}
+
+function getDomain(url) {
+  try {
+    return new URL(url).hostname;
+  } catch (e) {
+    return 'unknown';
+  }
+}
+
+function getFaviconUrl(url) {
+  try {
+    const domain = new URL(url).hostname;
+    return `chrome://favicon/size/16@2x/${url}`;
+  } catch (e) {
+    return '';
+  }
+}
+
+function formatDate(timestamp) {
+  if (!timestamp) return '';
+  const date = new Date(timestamp);
+  const now = new Date();
+  const diff = now - date;
+  const hours = Math.floor(diff / (1000 * 60 * 60));
+  const days = Math.floor(hours / 24);
+  
+  if (hours < 1) return 'Just now';
+  if (hours < 24) return `${hours}h ago`;
+  if (days < 7) return `${days}d ago`;
+  return date.toLocaleDateString();
+}
 
 document.getElementById('scan-btn').addEventListener('click', async () => {
-  statusDiv.textContent = 'Scanning...';
+  setStatus('Scanning...', 'info');
   try {
     const scanLimit = DEFAULT_SCAN_LIMIT;
     const suggestLimit = DEFAULT_SUGGEST_LIMIT;
 
     // Get currently open tabs
     const openTabs = await chrome.tabs.query({});
+    currentOpenTabs = openTabs;
     renderOpenTabs(openTabs);
 
     // Get history
@@ -47,7 +112,9 @@ document.getElementById('scan-btn').addEventListener('click', async () => {
       suggestLimit,
     });
 
-    renderSuggested(candidates);
+    currentSuggestions = candidates;
+    renderSuggested(candidates, groupByDomain);
+    loadSnapshots();
 
     // Save snapshot
     const snap = {
@@ -63,9 +130,9 @@ document.getElementById('scan-btn').addEventListener('click', async () => {
     const keep = snaps.slice(0, 10);
     await chrome.storage.local.set({ historySnapshots: keep });
 
-    statusDiv.textContent = `Scan complete — ${candidates.length} suggestions.`;
+    setStatus(`Scan complete — ${candidates.length} suggestions.`, 'success');
   } catch (err) {
-    statusDiv.textContent = `Error: ${err.message}`;
+    setStatus(`Error: ${err.message}`, 'error');
     console.error(err);
   }
 });
@@ -73,10 +140,10 @@ document.getElementById('scan-btn').addEventListener('click', async () => {
 document.getElementById('open-selected-btn').addEventListener('click', async () => {
   const checked = Array.from(document.querySelectorAll('.suggest-check:checked')).map(cb => cb.value);
   if (checked.length === 0) {
-    statusDiv.textContent = 'No tabs selected.';
+    setStatus('No tabs selected.', 'info');
     return;
   }
-  statusDiv.textContent = `Opening ${checked.length} tabs...`;
+  setStatus(`Opening ${checked.length} tabs...`, 'info');
   try {
     for (const url of checked) {
       await chrome.tabs.create({ url, active: false });
@@ -101,24 +168,43 @@ document.getElementById('open-selected-btn').addEventListener('click', async () 
       await chrome.storage.local.set({ lastEarliestOpenedDate: earliest });
     }
 
-    statusDiv.textContent = `Opened ${checked.length} tabs.`;
+    setStatus(`Opened ${checked.length} tabs.`, 'success');
   } catch (err) {
-    statusDiv.textContent = `Error: ${err.message}`;
+    setStatus(`Error: ${err.message}`, 'error');
+    console.error(err);
+  }
+});
+
+document.getElementById('open-window-btn').addEventListener('click', async () => {
+  const checked = Array.from(document.querySelectorAll('.suggest-check:checked')).map(cb => cb.value);
+  if (checked.length === 0) {
+    setStatus('No tabs selected.', 'info');
+    return;
+  }
+  setStatus(`Opening ${checked.length} tabs in new window...`, 'info');
+  try {
+    const newWindow = await chrome.windows.create({ state: 'normal' });
+    for (const url of checked) {
+      await chrome.tabs.create({ windowId: newWindow.id, url, active: false });
+    }
+    setStatus(`Opened ${checked.length} tabs in new window.`, 'success');
+  } catch (err) {
+    setStatus(`Error: ${err.message}`, 'error');
     console.error(err);
   }
 });
 
 document.getElementById('export-btn').addEventListener('click', async () => {
-  statusDiv.textContent = 'Exporting snapshot...';
+  setStatus('Exporting snapshot...', 'info');
   try {
     const stor = await chrome.storage.local.get(['historySnapshots']);
     const snaps = stor.historySnapshots || [];
     const blob = new Blob([JSON.stringify(snaps, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     await chrome.downloads.download({ url, filename: `tab_recovery_snapshot_${Date.now()}.json` });
-    statusDiv.textContent = 'Export started.';
+    setStatus('Export started.', 'success');
   } catch (err) {
-    statusDiv.textContent = `Error: ${err.message}`;
+    setStatus(`Error: ${err.message}`, 'error');
     console.error(err);
   }
 });
@@ -136,14 +222,115 @@ function normalizeUrl(urlStr) {
 }
 
 function renderOpenTabs(tabs) {
-  openTabsDiv.innerHTML = tabs.map(t => `<div style="font-size:0.9em;">${t.title || t.url}</div>`).join('');
+  openTabsDiv.innerHTML = tabs.slice(0, 8).map(t => {
+    const favicon = getFaviconUrl(t.url);
+    return `<div class="tab-item">
+      <img src="${favicon}" onerror="this.style.display='none'" alt="">
+      <span class="url-text" title="${t.url}">${t.title || t.url}</span>
+    </div>`;
+  }).join('');
+  if (tabs.length > 8) {
+    openTabsDiv.innerHTML += `<div class="tab-item" style="color: #999; font-size: 0.8em;">+${tabs.length - 8} more</div>`;
+  }
 }
 
-function renderSuggested(items) {
-  suggestedDiv.innerHTML = items.map((it, idx) => {
-    return `<div style="margin-bottom:6px;"><input class="suggest-check" id="s${idx}" type="checkbox" value="${it.url}"> <label for="s${idx}">${it.url}</label></div>`;
-  }).join('');
+function renderSuggested(items, grouped = true) {
+  if (!items || items.length === 0) {
+    suggestedDiv.innerHTML = '<div style="padding: 12px; color: #999; text-align: center;">No suggestions</div>';
+    return;
+  }
+
+  let html = '';
+  
+  if (grouped) {
+    const byDomain = {};
+    items.forEach(item => {
+      const domain = getDomain(item.url);
+      if (!byDomain[domain]) byDomain[domain] = [];
+      byDomain[domain].push(item);
+    });
+
+    Object.entries(byDomain).forEach(([domain, domainItems]) => {
+      const color = getDomainColor(domainItems[0].url);
+      html += `<div class="suggested-group">
+        <div class="group-header">
+          <span class="toggle">▼</span>
+          <span>${domain}</span>
+          <span class="domain-badge" style="background-color: ${color}">${domainItems.length}</span>
+        </div>
+        <div class="group-items">`;
+      
+      domainItems.forEach((item, idx) => {
+        const favicon = getFaviconUrl(item.url);
+        const date = formatDate(item.lastVisitTime);
+        const checkboxId = `s${domain}-${idx}`;
+        html += `<div class="suggested-item">
+          <input class="suggest-check" type="checkbox" value="${item.url}" id="${checkboxId}">
+          <img src="${favicon}" onerror="this.style.display='none'" alt="">
+          <label for="${checkboxId}">
+            <span class="url-text">${item.url}</span>
+            <span class="date-text">${date}</span>
+          </label>
+        </div>`;
+      });
+      
+      html += `</div></div>`;
+    });
+  } else {
+    items.forEach((item, idx) => {
+      const favicon = getFaviconUrl(item.url);
+      const date = formatDate(item.lastVisitTime);
+      const color = getDomainColor(item.url);
+      html += `<div class="suggested-item">
+        <input class="suggest-check" type="checkbox" value="${item.url}" id="s${idx}">
+        <img src="${favicon}" onerror="this.style.display='none'" alt="">
+        <label for="s${idx}">
+          <span class="url-text">${item.url}</span>
+          <span class="date-text">${date}</span>
+        </label>
+      </div>`;
+    });
+  }
+
+  suggestedDiv.innerHTML = html;
 }
+
+function setStatus(message, type = 'info') {
+  statusDiv.textContent = message;
+  statusDiv.className = type ? type : '';
+}
+
+function loadSnapshots() {
+  chrome.storage.local.get(['historySnapshots'], (result) => {
+    const snaps = result.historySnapshots || [];
+    if (snaps.length === 0) {
+      snapshotsDiv.innerHTML = '<div style="padding: 6px; color: #999; font-size: 0.85em;">No snapshots yet</div>';
+      return;
+    }
+    snapshotsDiv.innerHTML = snaps.slice(0, 5).map(snap => {
+      const date = new Date(snap.timestamp);
+      const dateStr = date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute:'2-digit' });
+      return `<div class="tab-item" title="${dateStr}"><strong>${snap.candidates.length}</strong> items</div>`;
+    }).join('');
+  });
+}
+
+function filterBySearch(items, query) {
+  if (!query) return items;
+  const q = query.toLowerCase();
+  return items.filter(item => item.url.toLowerCase().includes(q));
+}
+
+searchBox.addEventListener('input', (e) => {
+  const filtered = filterBySearch(currentSuggestions, e.target.value);
+  renderSuggested(filtered, groupByDomain);
+});
+
+groupToggle.addEventListener('change', (e) => {
+  groupByDomain = e.target.checked;
+  const filtered = filterBySearch(currentSuggestions, searchBox.value);
+  renderSuggested(filtered, groupByDomain);
+});
 
 function filterHistoryCandidates(historyItems = [], openTabs = [], otherDeviceTabs = [], options = {}) {
   const {

@@ -8,7 +8,8 @@
     "tabs",
     "storage",
     "sessions",
-    "downloads"
+    "downloads",
+    "windows"
   ],
   "action": {
     "default_popup": "get_tabs.html"
