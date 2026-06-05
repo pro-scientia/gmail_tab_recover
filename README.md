@@ -45,6 +45,26 @@ Limitations
 - `npm` is not available in this environment; run tests locally.
 - If you require saving files in a specific local subdirectory (not Downloads), we'll need to implement native messaging.
 
+Reinstalling packages
+## Recreating dependencies
+
+Requirements:
+- Node.js version: [e.g. 18.x] (use .nvmrc or engines in package.json)
+
+To install the exact dependency tree (recommended when `package-lock.json` is present):
+
+npm ci
+
+If `package-lock.json` is not committed, install with:
+
+npm install
+
+Notes:
+- `npm ci` is deterministic and faster for CI; it requires `package-lock.json`.
+- If you pin Node version, include `.nvmrc` or add `engines` in `package.json`.
+
+
+
 Next steps
 
 - Add a small settings pane to configure domains, scan/suggest limits, and other-device filtering.
