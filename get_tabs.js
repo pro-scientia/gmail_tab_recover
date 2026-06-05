@@ -136,7 +136,13 @@ document.getElementById('scan-btn').addEventListener('click', async () => {
     renderOpenTabs(openTabs);
 
     // Get history
-    const historyItems = await chrome.history.search({ text: '', maxResults: scanLimit });
+    // TEMPORARY TEST: start the history search near the provided sample timestamp
+    // This uses a 1-day window before the sample timestamp to capture nearby visits.
+    const SAMPLE_TS_MS = 1779949926788; // user-provided sample timestamp
+    const WINDOW_MS = 24 * 60 * 60 * 1000; // 1 day
+    const startTime = Math.max(0, SAMPLE_TS_MS - WINDOW_MS);
+    console.log('Temporary history search startTime (ms):', startTime);
+    const historyItems = await chrome.history.search({ text: '', startTime, maxResults: 1000 });
 
     // Attempt to get other-device sessions if permission enabled
     let otherDeviceUrls = [];
