@@ -142,15 +142,27 @@ document.getElementById('scan-btn').addEventListener('click', async () => {
     const WINDOW_MS = 24 * 60 * 60 * 1000; // 1 day
     const startTime = Math.max(0, SAMPLE_TS_MS - WINDOW_MS);
     console.log('Temporary history search startTime (ms):', startTime);
-    const historyItems = await chrome.history.search({ text: '', startTime, maxResults: 1000 });
+    // chrome.history.search is callback-based in some extension environments; promisify and check runtime errors
+    const historyItems = await new Promise((resolve) => {
+      try {
+        chrome.history.search({ text: '', startTime, maxResults: 1000 }, (items) => {
+          if (chrome.runtime && chrome.runtime.lastError) {
+            console.warn('chrome.history.search error', chrome.runtime.lastError);
+            resolve([]);
+            return;
+          }
+          resolve(items || []);
+        });
+      } catch (err) {
+        console.error('Exception calling chrome.history.search', err);
+        resolve([]);
+      }
+    });
+
     // Show how many history items we received for debugging / feedback
-    try {
-      const count = Array.isArray(historyItems) ? historyItems.length : 0;
-      console.log('historyItems.length:', count);
-      setStatus(`Found ${count} history items (window)`, 'info');
-    } catch (e) {
-      console.warn('Could not display history count', e);
-    }
+    const count = Array.isArray(historyItems) ? historyItems.length : 0;
+    console.log('historyItems.length:', count);
+    setStatus(`Found ${count} history items (window)`, 'info');
 
     // Attempt to get other-device sessions if permission enabled
     let otherDeviceUrls = [];
