@@ -21,6 +21,15 @@
       <input type="checkbox" id="group-toggle" checked>
       Group by domain
     </label>
+    <div class="time-controls" style="margin-top:8px;">
+      <label for="cutoff-mode">Search:</label>
+      <select id="cutoff-mode" style="margin:0 8px;">
+        <option value="before">Before</option>
+        <option value="after">After</option>
+      </select>
+      <input id="cutoff-input" type="datetime-local" style="width:200px;">
+      <button id="cutoff-sample-btn" class="secondary" style="margin-left:8px;">Use sample ts</button>
+    </div>
   </div>
 
   <div class="tabs-container">

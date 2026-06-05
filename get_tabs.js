@@ -12,6 +12,59 @@ let currentSuggestions = [];
 let currentOpenTabs = [];
 let selectedCheckboxes = new Set();
 let groupByDomain = true;
+// Cutoff controls (populated from DOM)
+const cutoffInput = document.getElementById('cutoff-input');
+const cutoffModeSelect = document.getElementById('cutoff-mode');
+const cutoffSampleBtn = document.getElementById('cutoff-sample-btn');
+
+function toDatetimeLocalString(value) {
+  if (!value) return '';
+  const d = new Date(value);
+  // Shift to local timezone for datetime-local input
+  const local = new Date(d.getTime() - d.getTimezoneOffset() * 60000);
+  return local.toISOString().slice(0, 16);
+}
+
+function loadCutoffSettings() {
+  try {
+    chrome.storage.local.get(['cutoffValue', 'cutoffMode'], (res) => {
+      if (res.cutoffMode && cutoffModeSelect) cutoffModeSelect.value = res.cutoffMode;
+      if (res.cutoffValue && cutoffInput) cutoffInput.value = toDatetimeLocalString(res.cutoffValue);
+    });
+  } catch (e) {
+    // ignore (not running in extension env during tests)
+  }
+}
+
+if (cutoffInput) {
+  cutoffInput.addEventListener('change', (e) => {
+    const val = e.target.value;
+    if (!val) {
+      chrome.storage.local.remove(['cutoffValue']);
+      return;
+    }
+    const iso = new Date(val).toISOString();
+    chrome.storage.local.set({ cutoffValue: iso });
+  });
+}
+
+if (cutoffModeSelect) {
+  cutoffModeSelect.addEventListener('change', (e) => {
+    chrome.storage.local.set({ cutoffMode: e.target.value });
+  });
+}
+
+if (cutoffSampleBtn) {
+  cutoffSampleBtn.addEventListener('click', () => {
+    const sampleMs = 1779949926788.142;
+    const iso = new Date(Math.floor(sampleMs)).toISOString();
+    if (cutoffInput) cutoffInput.value = toDatetimeLocalString(iso);
+    chrome.storage.local.set({ cutoffValue: iso, cutoffMode: 'before' });
+    setStatus('Sample cutoff set', 'info');
+  });
+}
+
+loadCutoffSettings();
 
 // Domain color palette
 const DOMAIN_COLORS = {
@@ -48,7 +101,9 @@ function getDomain(url) {
 
 function getFaviconUrl(url) {
   try {
-    const domain = new URL(url).hostname;
+    const parsed = new URL(url);
+    // chrome://favicon cannot be used for internal or non-http(s) schemes
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return '';
     return `chrome://favicon/size/16@2x/${url}`;
   } catch (e) {
     return '';
@@ -100,15 +155,26 @@ document.getElementById('scan-btn').addEventListener('click', async () => {
       // sessions permission may not be available; continue without other-device filtering
     }
 
-    // Get lastEarliestOpenedDate from storage
-    const storage = await chrome.storage.local.get(['lastEarliestOpenedDate']);
-    const afterTimestamp = storage.lastEarliestOpenedDate ? Number(new Date(storage.lastEarliestOpenedDate).getTime()) : 0;
+    // Get lastEarliestOpenedDate and optional cutoff from storage
+    const storage = await chrome.storage.local.get(['lastEarliestOpenedDate', 'cutoffValue', 'cutoffMode']);
+    // default afterTimestamp comes from lastEarliestOpenedDate
+    let afterTimestamp = storage.lastEarliestOpenedDate ? Number(new Date(storage.lastEarliestOpenedDate).getTime()) : 0;
+    let beforeTimestamp = null;
+    if (storage.cutoffValue) {
+      const cutoffEpoch = Number(new Date(storage.cutoffValue).getTime());
+      if (storage.cutoffMode === 'after') {
+        afterTimestamp = cutoffEpoch;
+      } else {
+        beforeTimestamp = cutoffEpoch;
+      }
+    }
 
     // Filter candidates
     const candidates = filterHistoryCandidates(historyItems, openTabs.map(t => t.url), otherDeviceUrls, {
       emailDomains: ['gmail.com','mail.google.com', 'outlook.com','live.com', 'hotmail.com', 'yahoo.com'],
       excludeOtherDevices: true,
       afterTimestamp,
+      beforeTimestamp,
       suggestLimit,
     });
 
