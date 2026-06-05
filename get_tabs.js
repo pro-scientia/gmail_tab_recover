@@ -143,6 +143,14 @@ document.getElementById('scan-btn').addEventListener('click', async () => {
     const startTime = Math.max(0, SAMPLE_TS_MS - WINDOW_MS);
     console.log('Temporary history search startTime (ms):', startTime);
     const historyItems = await chrome.history.search({ text: '', startTime, maxResults: 1000 });
+    // Show how many history items we received for debugging / feedback
+    try {
+      const count = Array.isArray(historyItems) ? historyItems.length : 0;
+      console.log('historyItems.length:', count);
+      setStatus(`Found ${count} history items (window)`, 'info');
+    } catch (e) {
+      console.warn('Could not display history count', e);
+    }
 
     // Attempt to get other-device sessions if permission enabled
     let otherDeviceUrls = [];
@@ -174,6 +182,7 @@ document.getElementById('scan-btn').addEventListener('click', async () => {
         beforeTimestamp = cutoffEpoch;
       }
     }
+    afterTimestamp = null;
 
     // Filter candidates
     const candidates = filterHistoryCandidates(historyItems, openTabs.map(t => t.url), otherDeviceUrls, {
@@ -422,7 +431,7 @@ function filterHistoryCandidates(historyItems = [], openTabs = [], otherDeviceTa
       const last = item.lastVisitTime != null ? Number(item.lastVisitTime) : null;
       const after = Number(afterTimestamp) || 0;
       const before = beforeTimestamp != null ? Number(beforeTimestamp) : null;
-      if (last !== null && last < after) return false;
+      if (last !== null  && after != null && last < after) return false;
       if (last !== null && before != null && last >= before) return false;
       const n = normalizeUrl(item.url);
       if (openSet.has(n)) return false;
