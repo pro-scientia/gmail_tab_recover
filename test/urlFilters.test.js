@@ -54,3 +54,54 @@ test('filterCandidates filters out open tabs, other-device tabs and email/inkblo
   const urls = candidates.map((c) => c.url);
   expect(urls).toEqual(['https://example.com/page1']);
 });
+
+test('filterCandidates respects beforeTimestamp (excludes items >= before)', () => {
+  const history = [
+    { url: 'https://old.com', lastVisitTime: 1000 },
+    { url: 'https://mid.com', lastVisitTime: 2000 },
+    { url: 'https://new.com', lastVisitTime: 3000 },
+  ];
+
+  const candidates = filterCandidates(history, [], [], {
+    afterTimestamp: 0,
+    beforeTimestamp: 2500,
+    suggestLimit: 10,
+  });
+
+  const urls = candidates.map((c) => c.url);
+  // should include items with lastVisitTime < 2500, newest-first
+  expect(urls).toEqual(['https://mid.com', 'https://old.com']);
+});
+
+test('filterCandidates excludes items equal to beforeTimestamp (boundary excluded)', () => {
+  const history = [
+    { url: 'https://old.com', lastVisitTime: 1000 },
+    { url: 'https://eq.com', lastVisitTime: 2500 },
+  ];
+
+  const candidates = filterCandidates(history, [], [], {
+    afterTimestamp: 0,
+    beforeTimestamp: 2500,
+    suggestLimit: 10,
+  });
+
+  const urls = candidates.map((c) => c.url);
+  expect(urls).toEqual(['https://old.com']);
+});
+
+test('filterCandidates supports combined afterTimestamp and beforeTimestamp (range)', () => {
+  const history = [
+    { url: 'https://old.com', lastVisitTime: 1000 },
+    { url: 'https://mid.com', lastVisitTime: 2000 },
+    { url: 'https://new.com', lastVisitTime: 3000 },
+  ];
+
+  const candidates = filterCandidates(history, [], [], {
+    afterTimestamp: 1500,
+    beforeTimestamp: 3000,
+    suggestLimit: 10,
+  });
+
+  const urls = candidates.map((c) => c.url);
+  expect(urls).toEqual(['https://mid.com']);
+});

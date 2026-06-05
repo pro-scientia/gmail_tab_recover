@@ -38,6 +38,7 @@ function filterCandidates(historyItems = [], openTabs = [], otherDeviceTabs = []
   const {
     emailDomains = ['gmail.com','mail.google.com', 'outlook.com','live.com', 'hotmail.com', 'yahoo.com'],    excludeOtherDevices = true,
     afterTimestamp = 0,
+    beforeTimestamp = null,
     suggestLimit = 15,
   } = options;
 
@@ -48,7 +49,11 @@ function filterCandidates(historyItems = [], openTabs = [], otherDeviceTabs = []
   const candidates = historyItems
     .filter((item) => {
       if (!item || !item.url) return false;
-      if (item.lastVisitTime && item.lastVisitTime < afterTimestamp) return false;
+      const last = item.lastVisitTime != null ? Number(item.lastVisitTime) : null;
+      const after = Number(afterTimestamp) || 0;
+      const before = beforeTimestamp != null ? Number(beforeTimestamp) : null;
+      if (last !== null && last < after) return false;
+      if (last !== null && before != null && last >= before) return false;
       const n = normalize(item.url);
       if (openSet.has(n)) return false;
       if (excludeOtherDevices && otherSet.has(n)) return false;
