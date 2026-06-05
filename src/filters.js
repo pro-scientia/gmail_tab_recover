@@ -36,8 +36,7 @@ function isLinkedInExcluded(urlStr) {
 
 function filterCandidates(historyItems = [], openTabs = [], otherDeviceTabs = [], options = {}) {
   const {
-    emailDomains = ['gmail.com', 'outlook.com', 'hotmail.com', 'yahoo.com'],
-    excludeOtherDevices = true,
+    emailDomains = ['gmail.com','mail.google.com', 'outlook.com','live.com', 'hotmail.com', 'yahoo.com'],    excludeOtherDevices = true,
     afterTimestamp = 0,
     suggestLimit = 15,
   } = options;

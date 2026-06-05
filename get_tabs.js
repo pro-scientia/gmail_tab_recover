@@ -41,7 +41,7 @@ document.getElementById('scan-btn').addEventListener('click', async () => {
 
     // Filter candidates
     const candidates = filterHistoryCandidates(historyItems, openTabs.map(t => t.url), otherDeviceUrls, {
-      emailDomains: ['gmail.com', 'outlook.com', 'hotmail.com', 'yahoo.com'],
+      emailDomains: ['gmail.com','mail.google.com', 'outlook.com','live.com', 'hotmail.com', 'yahoo.com'],
       excludeOtherDevices: true,
       afterTimestamp,
       suggestLimit,
@@ -147,7 +147,7 @@ function renderSuggested(items) {
 
 function filterHistoryCandidates(historyItems = [], openTabs = [], otherDeviceTabs = [], options = {}) {
   const {
-    emailDomains = ['gmail.com', 'outlook.com', 'hotmail.com', 'yahoo.com'],
+    emailDomains = ['gmail.com','mail.google.com', 'outlook.com','live.com', 'hotmail.com', 'yahoo.com'],
     excludeOtherDevices = true,
     afterTimestamp = 0,
     suggestLimit = 15,

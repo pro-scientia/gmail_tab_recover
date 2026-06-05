@@ -12,8 +12,11 @@ test('normalizeUrl removes protocol and www', () => {
 });
 
 test('isEmailDomain matches common email hosts', () => {
-  expect(isEmailDomain('https://mail.google.com/mail/u/0/#inbox', ['gmail.com'])).toBe(true);
-  expect(isEmailDomain('https://outlook.live.com/mail/', ['outlook.com'])).toBe(true);
+  expect(isEmailDomain('https://mail.google.com/mail/u/0/#inbox', ['mail.google.com'])).toBe(true);
+  expect(isEmailDomain('https://gmail.com/mail/u/0/#inbox', ['gmail.com'])).toBe(true);
+  expect(isEmailDomain('https://outlook.live.com/mail/', ['outlook.com'])).toBe(false);
+  expect(isEmailDomain('https://outlook.live.com/mail/', ['live.com'])).toBe(true);
+  expect(isEmailDomain('https://outlook.live.com/mail/', ['outlook.com', 'live.com'])).toBe(true);
   expect(isEmailDomain('https://example.com', ['gmail.com'])).toBe(false);
 });
 
@@ -42,7 +45,7 @@ test('filterCandidates filters out open tabs, other-device tabs and email/inkblo
   const otherTabs = ['https://other.com'];
 
   const candidates = filterCandidates(history, openTabs, otherTabs, {
-    emailDomains: ['gmail.com'],
+    emailDomains: ['mail.google.com'],
     excludeOtherDevices: true,
     afterTimestamp: 0,
     suggestLimit: 10,
