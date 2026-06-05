@@ -134,7 +134,7 @@ document.getElementById('scan-btn').addEventListener('click', async () => {
     const openTabs = await chrome.tabs.query({});
     currentOpenTabs = openTabs;
     renderOpenTabs(openTabs);
-
+    console.log('testing');
     // Get history
     // TEMPORARY TEST: start the history search near the provided sample timestamp
     // This uses a 1-day window before the sample timestamp to capture nearby visits.
