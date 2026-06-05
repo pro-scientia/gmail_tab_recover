@@ -1,0 +1,7 @@
+node_modules/
+npm-debug.log*
+.env
+plan-*.prompt.md
+untitled:*.prompt.md
+*.agent.md
+# package-lock.json   # optional — keep if you want reproducible installs
