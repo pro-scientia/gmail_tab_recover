@@ -245,7 +245,7 @@ document.getElementById('open-selected-btn').addEventListener('click', async () 
     }
 
     // After opening, record earliest opened date from history for these URLs
-    const hist = await chrome.history.search({ text: '', maxResults: 1000 });
+    const hist = await chrome.history.search({ text: '', maxResults: 2000 });
     const times = [];
     for (const u of checked) {
       const found = hist.find(h => normalizeUrl(h.url) === normalizeUrl(u));
