@@ -145,7 +145,7 @@ document.getElementById('scan-btn').addEventListener('click', async () => {
     // chrome.history.search is callback-based in some extension environments; promisify and check runtime errors
     const historyItems = await new Promise((resolve) => {
       try {
-        chrome.history.search({ text: '', startTime, maxResults: 1000 }, (items) => {
+        chrome.history.search({ text: '', startTime, maxResults: 10000 }, (items) => {
           if (chrome.runtime && chrome.runtime.lastError) {
             console.warn('chrome.history.search error', chrome.runtime.lastError);
             resolve([]);
