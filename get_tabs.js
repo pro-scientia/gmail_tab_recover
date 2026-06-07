@@ -121,7 +121,8 @@ function formatDate(timestamp) {
   if (hours < 1) return 'Just now';
   if (hours < 24) return `${hours}h ago`;
   if (days < 7) return `${days}d ago`;
-  return date.toLocaleDateString();
+  // Show full date and time for older entries (day resolution was previously used)
+  return `${date.toLocaleDateString()} ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
 }
 
 document.getElementById('scan-btn').addEventListener('click', async () => {
@@ -145,6 +146,7 @@ document.getElementById('scan-btn').addEventListener('click', async () => {
     // chrome.history.search is callback-based in some extension environments; promisify and check runtime errors
     const historyItems = await new Promise((resolve) => {
       try {
+        // not ideal to fetch 10k, but okay for now
         chrome.history.search({ text: '', startTime, maxResults: 10000 }, (items) => {
           if (chrome.runtime && chrome.runtime.lastError) {
             console.warn('chrome.history.search error', chrome.runtime.lastError);
